@@ -19,6 +19,59 @@ b.onclick=()=>{
   render();
 };songs.append(b)});list.replaceChildren();document.querySelector('#count').textContent=`(${chosen.length} / ${MAX_SONGS}곡)`;if(!chosen.length){let e=document.createElement('div');e.className='empty';e.textContent='왼쪽에서 노래를 선택해 주세요 ✨';list.append(e)}chosen.forEach((s,i)=>{let li=document.createElement('li');li.className='item';li.draggable=true;li.dataset.index=i;let handle=document.createElement('span');handle.className='handle';handle.textContent='≡';let n=document.createElement('span');n.className='number';n.textContent=i+1+'.';let name=document.createElement('span');name.className='name';name.textContent=s;li.append(handle,n,name);for(let [symbol,delta] of [['↑',-1],['↓',1]]){let b=document.createElement('button');b.className='small';b.textContent=symbol;b.setAttribute('aria-label',`${s} ${delta<0?'위':'아래'}로 이동`);b.onclick=()=>move(i,i+delta);li.append(b)}let remove=document.createElement('button');remove.className='small';remove.textContent='×';remove.setAttribute('aria-label',s+' 삭제');remove.onclick=()=>{chosen.splice(i,1);persist();render()};li.append(remove);li.addEventListener('dragstart',e=>{dragIndex=i;li.classList.add('dragging');e.dataTransfer.effectAllowed='move'});li.addEventListener('dragover',e=>e.preventDefault());li.addEventListener('drop',e=>{e.preventDefault();move(dragIndex,i)});li.addEventListener('dragend',()=>li.classList.remove('dragging'));list.append(li)})}let dragIndex=-1;function move(a,b){if(a<0||b<0||a>=chosen.length||b>=chosen.length||a===b)return;chosen.splice(b,0,chosen.splice(a,1)[0]);persist();render()}document.querySelector('#search').oninput=render;document.querySelector('#reset').onclick=()=>{if(!chosen.length||confirm('셋리스트를 초기화할까요?')){chosen=[];persist();render()}};document.querySelector('#copy').onclick=async()=>{let txt='MY SETLIST\n'+chosen.map((s,i)=>`${i+1}. ${s}`).join('\n');try{await navigator.clipboard.writeText(txt);alert('셋리스트가 복사되었어요!')}catch{prompt('아래 내용을 복사하세요',txt)}};
 // 이미지 내보내기: 브라우저 기본 Canvas로 외부 라이브러리 없이 PNG 생성
-function downloadImage(){let scale=2,w=720,line=58,h=Math.max(320,180+chosen.length*line);let c=document.createElement('canvas');c.width=w*scale;c.height=h*scale;let x=c.getContext('2d');x.scale(scale,scale);x.fillStyle='#f5f8ff';x.fillRect(0,0,w,h);x.fillStyle='#203044';x.font='bold 36px sans-serif';x.fillText('MY SETLIST',48,76);x.fillStyle='#53657c';x.font='20px sans-serif';x.fillText(`${chosen.length} SONGS`,48,113);chosen.forEach((s,i)=>{let y=163+i*line;x.fillStyle='#fff';x.fillRect(40,y-30,640,48);x.fillStyle='#316db1';x.font='bold 19px sans-serif';x.fillText(String(i+1).padStart(2,'0'),57,y);x.fillStyle='#203044';x.font='20px sans-serif';let txt=s;while(x.measureText(txt).width>540&&txt.length>1)txt=txt.slice(0,-2)+'…';x.fillText(txt,108,y)});let a=document.createElement('a');a.download='my-setlist.png';a.href=c.toDataURL('image/png');a.click()}document.querySelector('#save').onclick=downloadImage;
+function downloadImage(){let scale=2,w=720,line=58,h=Math.max(320,180+chosen.length*line);let c=document.createElement('canvas');c.width=w*scale;c.height=h*scale;let x=c.getContext('2d');x.scale(scale,scale);x.fillStyle='#f5f8ff';x.fillRect(0,0,w,h);x.fillStyle='#203044';x.font='bold 36px sans-serif';x.fillText('MY SETLIST',48,76);x.fillStyle='#53657c';x.font='20px sans-serif';x.fillText(`${chosen.length} SONGS`,48,113);chosen.forEach((s,i)=>{let y=163+i*line;x.fillStyle='#fff';x.fillRect(40,y-30,640,48);x.fillStyle='#316db1';x.font='bold 19px sans-serif';x.fillText(String(i+1).padStart(2,'0'),57,y);x.fillStyle='#203044';x.font='20px sans-serif';let txt=s;while(x.measureText(txt).width>540&&txt.length>1)txt=txt.slice(0,-2)+'…';x.fillText(txt,108,y)});const imageUrl = c.toDataURL('image/png');
+
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+if (isMobile) {
+  // 모바일: 이미지 미리보기 제공
+  const overlay = document.createElement('div');
+
+  overlay.style.cssText = `
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.85);
+    z-index:9999;
+    overflow:auto;
+    padding:20px;
+    text-align:center;
+  `;
+
+  overlay.innerHTML = `
+    <p style="color:white;font-size:16px;">
+      💙 이미지를 길게 눌러 사진에 저장해 주세요!
+    </p>
+    <button id="closePreview" style="
+      padding:12px 24px;
+      border:0;
+      border-radius:10px;
+      margin-bottom:20px;
+      cursor:pointer;
+    ">닫기 ✕</button>
+    <img src="${imageUrl}" style="
+      width:100%;
+      max-width:500px;
+      display:block;
+      margin:auto;
+      border-radius:12px;
+      -webkit-touch-callout:default;
+    ">
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#closePreview').onclick = () => {
+    overlay.remove();
+  };
+
+} else {
+  // PC: 기존처럼 PNG 다운로드
+  const a = document.createElement('a');
+  a.download = 'my-setlist.png';
+  a.href = imageUrl;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}}document.querySelector('#save').onclick=downloadImage;
 // 모바일 터치 드래그 (핸들만 활성화)
 let touchFrom=null;list.addEventListener('pointerdown',e=>{if(!e.target.classList.contains('handle'))return;touchFrom=Number(e.target.closest('.item').dataset.index);e.target.setPointerCapture(e.pointerId)});list.addEventListener('pointerup',e=>{if(touchFrom===null)return;let el=document.elementFromPoint(e.clientX,e.clientY)?.closest('.item');if(el&&list.contains(el))move(touchFrom,Number(el.dataset.index));touchFrom=null});render();</script></body></html>
